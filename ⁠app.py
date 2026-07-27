@@ -1,62 +1,83 @@
+import random
 import streamlit as st
 
-# ページ設定
-st.set_page_config(
-    page_title="我が家の献立＆解凍マネージャー", page_icon="🍳", layout="centered"
-)
+st.title("我が家の献立＆解凍マネージャー")
 
-st.title("🍳 我が家の献立＆解凍マネージャー")
+# 担当ローテーションの設定（4日周期）
+cycles = [
+    "0: 奥さん担当",
+    "1: 俺担当 ① (肉・炒め物系)",
+    "2: 俺担当 ② (丼・お手軽系)",
+    "3: 俺担当 ③ (魚の日・要解凍)",
+]
 
-# --- 1. ルールと状態の定義 ---
-cycle_names = {0: "奥さん担当", 1: "俺担当 ①", 2: "俺担当 ②", 3: "俺担当 ③ (魚の日)"}
-
-# サンプル在庫データ
-if "inventory" not in st.session_state:
-    st.session_state.inventory = {
-        "骨とりタラ (冷凍)": {"needs_thaw": True, "stock": "500g"},
-        "メンチカツ (冷凍)": {"needs_thaw": True, "stock": "あり"},
-        "冷凍餃子": {"needs_thaw": False, "stock": "あり"},
-        "ロースハム (チルド)": {"needs_thaw": False, "stock": "あり"},
-        "ベーコン (チルド)": {"needs_thaw": False, "stock": "あり"},
-        "ウインナー": {"needs_thaw": False, "stock": "あり"},
-        "豚こま肉": {"needs_thaw": False, "rule": "奥さん専用"},
-    }
-
-# --- 2. 本日の担当と翌日の予測 ---
-st.header("📅 本日のローテーション")
-day_index = st.selectbox(
+# ユーザーが今日の担当を選択
+selected_index = st.selectbox(
     "今日の担当サイクルを選択（テスト用）",
-    options=[0, 1, 2, 3],
-    format_func=lambda x: cycle_names[x],
-    index=1,
+    range(len(cycles)),
+    format_func=lambda x: cycles[x],
 )
 
-next_index = (day_index + 1) % 4
+# 明日の担当を自動計算
+tomorrow_index = (selected_index + 1) % len(cycles)
 
-st.info(f"👉 **今日の担当:** {cycle_names[day_index]}")
-st.success(f"📌 **明日の担当:** {cycle_names[next_index]}")
+st.markdown("---")
 
-# --- 3. 解凍リマインド機能 ---
-st.divider()
-st.header("🧊 解凍・準備チェッカー")
-
-if next_index == 3:
+# 解凍・準備チェッカー
+st.subheader("🔔 明日の準備・解凍チェッカー")
+if tomorrow_index == 3:
     st.warning(
-        "⚠️ **【重要・前日リマインド】**\n\n明日は**魚の日（骨とりタラ）**です！\n今夜のうちに、冷凍庫から**「骨とりタラ」を冷蔵庫へ移して解凍**してください。"
+        f"明日は **{cycles[tomorrow_index]}** です！\n\n👉 **骨とりタラ**を今夜のうちに冷蔵庫へ移して解凍してください！"
     )
-elif next_index == 2:
-    st.info(
-        "💡 明日はメンチカツの予定です。凍ったままトースター調理か、前日解凍か確認してね。"
-    )
+elif tomorrow_index == 0:
+    st.info(f"明日は **{cycles[tomorrow_index]}** です。準備は特に必要ありません。")
 else:
-    st.info("💡 明日は解凍が必要な特別食材はありません。スムーズにいけます！")
-
-# --- 4. 在庫とルールの確認 ---
-st.divider()
-st.header("🛒 現在のストック & ルール確認")
-for item, info in st.session_state.inventory.items():
-    rule_text = (
-        f" （⚠️ {info['rule']}）" if "rule" in info else ""
+    st.success(
+        f"明日は **{cycles[tomorrow_index]}** です。冷凍ストック（豚こま・鶏むねなど）の残量を確認しておきましょう。"
     )
-    thaw_text = "要解凍" if info.get("needs_thaw") else "そのままでOK"
-    st.text(f"・ {item}: {info.get('stock', '')} [{thaw_text}]{rule_text}")
+
+st.markdown("---")
+
+# 💡 献立アイデア提案機能
+st.subheader("🍳 本日の献立アイデア提案")
+
+# 当番や食材に応じたメニューの引き出し
+meat_menus = [
+    "豚こまとピーマンのオイスター炒め",
+    "鶏むね肉のしっとりレンジ蒸し（ポン酢がけ）",
+    "豚バラともやしのレンジ蒸し",
+    "鶏肉と野菜の旨辛炒め",
+]
+
+fish_menus = ["骨とりタラのホイル焼き（バター醤油）", "タラの和風あんかけ", "タラのソテー（トマトソース）"]
+
+other_menus = [
+    "冷蔵庫の残り物で作る炒飯",
+    "手軽な完全栄養食（BASE FOOD）でサクッと済ませる",
+    "おつまみ風プレート（チーズ、乾物、簡単な小鉢いろいろ）",
+]
+
+if st.button("💡 おすすめの献立をランダムで決める！"):
+  if selected_index == 3:
+    # 魚の日の場合
+    chosen_menu = random.choice(fish_menus)
+    st.success(今日は魚の日です！おすすめメニュー： **" + chosen_menu + "**")
+  elif selected_index in [1, 2]:
+    # 俺の担当の場合
+    chosen_menu = random.choice(meat_menus)
+    st.info(今日の担当にぴったりのメニュー： **" + chosen_menu + "**)
+  else:
+    # 奥さん担当などの場合
+    chosen_menu = random.choice(other_menus)
+    st.info(おすすめのアイデア： **" + chosen_menu + "**)
+
+st.markdown("---")
+
+# 現在のストック & ルール確認
+st.subheader("📦 現在のストック & 我が家のルール")
+st.markdown("""
+- **冷凍ストック**: 豚こま、鶏むね肉、骨とりタラ
+- **基本ルール**: 
+  - 4日周期の当番制（最後は魚の日）
+  - 魚の日は前日夜から冷蔵庫で解凍を忘れない
+""")
